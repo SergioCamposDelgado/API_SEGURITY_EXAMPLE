@@ -1,26 +1,31 @@
 package com.dwes.security.config;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
+
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.dwes.security.entities.Role;
 import com.dwes.security.service.UserService;
+
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -28,33 +33,35 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final UserService userService;
+    @Autowired
+    JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    UserService userService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors(Customizer.withDefaults())
+            // CORS activo (usa el bean CorsConfigurationSource)
+            .cors(cors -> {})
             .csrf(AbstractHttpConfigurer::disable)
-            .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
-            
-            // ESTO ES LO NUEVO: 
-            // Forzamos a que, si hay un error de "no autenticado", no haga nada (evita el 403)
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    // No hacer nada, permitir que siga el flujo
-                })
-            )
-
             .authorizeHttpRequests(request ->
-                request.anyRequest().permitAll()
-            )
-            
-            .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
-            .authenticationProvider(authenticationProvider());
+                request
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-        // Asegúrate de que esta línea esté COMENTADA o BORRADA
-        // .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                    .requestMatchers("/api/clima/ciudades","/api/clima/hoy").permitAll()
+
+                    .requestMatchers(HttpMethod.POST, "/api/clima/ciudades")
+                        .hasAuthority(Role.ROLE_ADMIN.toString())
+                    .requestMatchers(HttpMethod.PUT, "/api/clima/ciudades/**")
+                        .hasAuthority(Role.ROLE_ADMIN.toString())
+                    .requestMatchers(HttpMethod.DELETE, "/api/clima/ciudades/**")
+                        .hasAuthority(Role.ROLE_ADMIN.toString())
+                    .anyRequest().authenticated()
+            )
+            .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -81,9 +88,40 @@ public class SecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:8081", "http://127.0.0.1:8081", "http://192.168.*.*:8081"));
+
+        //  Permite acceder desde otro host de la LAN a la Raspberry:
+        // - frontend en la misma raspberry: http://localhost:8081 / http://127.0.0.1:8081
+        // - frontend desde cualquier PC en LAN: http://192.168.x.x:8081 (y 10.x / 172.16-31.x)
+        config.setAllowedOriginPatterns(List.of(
+            "http://localhost:8081",
+            "http://127.0.0.1:8081",
+
+            "http://192.168.*.*:8081",
+            "http://10.*.*.*:8081",
+            "http://172.16.*.*:8081",
+            "http://172.17.*.*:8081",
+            "http://172.18.*.*:8081",
+            "http://172.19.*.*:8081",
+            "http://172.20.*.*:8081",
+            "http://172.21.*.*:8081",
+            "http://172.22.*.*:8081",
+            "http://172.23.*.*:8081",
+            "http://172.24.*.*:8081",
+            "http://172.25.*.*:8081",
+            "http://172.26.*.*:8081",
+            "http://172.27.*.*:8081",
+            "http://172.28.*.*:8081",
+            "http://172.29.*.*:8081",
+            "http://172.30.*.*:8081",
+            "http://172.31.*.*:8081"
+        ));
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+
+        // Para JWT en Authorization normalmente NO hace falta:
+        // config.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
