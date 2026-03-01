@@ -33,97 +33,77 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    @Autowired
-    JwtAuthenticationFilter jwtAuthenticationFilter;
+	@Autowired
+	JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Autowired
-    UserService userService;
+	@Autowired
+	UserService userService;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            // CORS activo (usa el bean CorsConfigurationSource)
-            .cors(cors -> {})
-            .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(request ->
-                request
-                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+				// CORS activo (usa el bean CorsConfigurationSource)
+				.cors(cors -> {
+				}).csrf(AbstractHttpConfigurer::disable)
+				.authorizeHttpRequests(request -> request.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                    .requestMatchers("/api/clima/ciudades","/api/clima/hoy").permitAll()
+						.requestMatchers("/api/clima/ciudades", "/api/clima/hoy").permitAll()
 
-                    .requestMatchers(HttpMethod.POST, "/api/clima/ciudades")
-                        .hasAuthority(Role.ROLE_ADMIN.toString())
-                    .requestMatchers(HttpMethod.PUT, "/api/clima/ciudades/**")
-                        .hasAuthority(Role.ROLE_ADMIN.toString())
-                    .requestMatchers(HttpMethod.DELETE, "/api/clima/ciudades/**")
-                        .hasAuthority(Role.ROLE_ADMIN.toString())
-                    .anyRequest().authenticated()
-            )
-            .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+						.requestMatchers(HttpMethod.POST, "/api/clima/ciudades")
+						.hasAuthority(Role.ROLE_ADMIN.toString())
+						.requestMatchers(HttpMethod.PUT, "/api/clima/ciudades/**")
+						.hasAuthority(Role.ROLE_ADMIN.toString())
+						.requestMatchers(HttpMethod.DELETE, "/api/clima/ciudades/**")
+						.hasAuthority(Role.ROLE_ADMIN.toString()).anyRequest().authenticated())
+				.sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
+				.authenticationProvider(authenticationProvider())
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+		return http.build();
+	}
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userService.userDetailsService());
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
+	@Bean
+	public AuthenticationProvider authenticationProvider() {
+		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+		authProvider.setUserDetailsService(userService.userDetailsService());
+		authProvider.setPasswordEncoder(passwordEncoder());
+		return authProvider;
+	}
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
-            throws Exception {
-        return config.getAuthenticationManager();
-    }
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+		return config.getAuthenticationManager();
+	}
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration config = new CorsConfiguration();
 
-        //  Permite acceder desde otro host de la LAN a la Raspberry:
-        // - frontend en la misma raspberry: http://localhost:8081 / http://127.0.0.1:8081
-        // - frontend desde cualquier PC en LAN: http://192.168.x.x:8081 (y 10.x / 172.16-31.x)
-        config.setAllowedOriginPatterns(List.of(
-            "http://localhost:8081",
-            "http://127.0.0.1:8081",
+		// Permite acceder desde otro host de la LAN a la Raspberry:
+		// - frontend en la misma raspberry: http://localhost:8081 /
+		// http://127.0.0.1:8081
+		// - frontend desde cualquier PC en LAN: http://192.168.x.x:8081 (y 10.x /
+		// 172.16-31.x)
+		config.setAllowedOriginPatterns(List.of("http://localhost:5173", "http://127.0.0.1:5173",
+				"http://192.168.*.*:5173", "http://10.*.*.*:5173", "http://172.16.*.*:5173", "http://172.17.*.*:5173",
+				"http://172.18.*.*:5173", "http://172.19.*.*:5173", "http://172.20.*.*:5173", "http://172.21.*.*:5173",
+				"http://172.22.*.*:5173", "http://172.23.*.*:5173", "http://172.24.*.*:5173", "http://172.25.*.*:5173",
+				"http://172.26.*.*:5173", "http://172.27.*.*:5173", "http://172.28.*.*:5173", "http://172.29.*.*:5173",
+				"http://172.30.*.*:5173", "http://172.31.*.*:5173"));
 
-            "http://192.168.*.*:8081",
-            "http://10.*.*.*:8081",
-            "http://172.16.*.*:8081",
-            "http://172.17.*.*:8081",
-            "http://172.18.*.*:8081",
-            "http://172.19.*.*:8081",
-            "http://172.20.*.*:8081",
-            "http://172.21.*.*:8081",
-            "http://172.22.*.*:8081",
-            "http://172.23.*.*:8081",
-            "http://172.24.*.*:8081",
-            "http://172.25.*.*:8081",
-            "http://172.26.*.*:8081",
-            "http://172.27.*.*:8081",
-            "http://172.28.*.*:8081",
-            "http://172.29.*.*:8081",
-            "http://172.30.*.*:8081",
-            "http://172.31.*.*:8081"
-        ));
+		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+		config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+		// Para JWT en Authorization normalmente NO hace falta:
+		// config.setAllowCredentials(true);
 
-        // Para JWT en Authorization normalmente NO hace falta:
-        // config.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", config);
+		return source;
+	}
 }
