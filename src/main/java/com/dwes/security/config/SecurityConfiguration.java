@@ -49,7 +49,7 @@ public class SecurityConfiguration {
 
 						.requestMatchers("/api/clima/ciudades", "/api/clima/hoy", "/api/v1/auth/**").permitAll()
 
-						.requestMatchers(HttpMethod.POST, "/api/clima/ciudades")
+						.requestMatchers(HttpMethod.POST, "/api/clima/ciudades/**")
 						.hasAuthority(Role.ROLE_ADMIN.toString())
 						.requestMatchers(HttpMethod.PUT, "/api/clima/ciudades/**")
 						.hasAuthority(Role.ROLE_ADMIN.toString())
