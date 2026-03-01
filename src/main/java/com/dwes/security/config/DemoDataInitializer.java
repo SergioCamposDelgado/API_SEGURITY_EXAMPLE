@@ -1,6 +1,7 @@
 package com.dwes.security.config;
 
 import java.util.Locale;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,16 +11,16 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import com.dwes.security.entities.Libro;
+import com.dwes.security.entities.Ciudad;
 import com.dwes.security.entities.Role;
 import com.dwes.security.entities.Usuario; 
-import com.dwes.security.repository.LibroRepository;
+import com.dwes.security.repository.CiudadRepository;
 import com.dwes.security.repository.UserRepository;
 import com.github.javafaker.Faker;
 
 /**
  * Inicializador de datos de demostración para el perfil 'demo'.
- * Crea usuarios y libros de prueba automáticamente al iniciar la aplicación.
+ * Configura el entorno con ciudades y usuarios de prueba.
  */
 @Profile("demo")
 @Component
@@ -31,128 +32,105 @@ public class DemoDataInitializer implements CommandLineRunner {
     private UserRepository usuarioRepository;
 
     @Autowired
-    private LibroRepository libroRepository;
+    private CiudadRepository ciudadRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // Variables de configuración
     private static final boolean BORRAR_DATOS_EXISTENTES = true;
-    private static final int CANTIDAD_LIBROS_DEMO = 10;
 
     @Override
     public void run(String... args) throws Exception {
         log.info("========================================");
-        log.info("INICIALIZANDO DATOS DE DEMOSTRACIÓN");
+        log.info("INICIALIZANDO DATOS DE DEMOSTRACIÓN (CLIMA)");
         log.info("========================================");
 
-        // Inicializar libros
-        inicializarLibros();
+        // 1. Cargar ciudades para la App de Clima
+        inicializarCiudades();
 
-        // Inicializar usuarios
+        // 2. Cargar usuarios de prueba
         inicializarUsuarios();
 
         log.info("========================================");
-        log.info("DATOS DE DEMOSTRACIÓN CARGADOS");
+        log.info("DATOS CARGADOS CON ÉXITO");
+        log.info("Total ciudades: {}", ciudadRepository.count());
         log.info("Total usuarios: {}", usuarioRepository.count());
-        log.info("Total libros: {}", libroRepository.count());
         log.info("========================================");
     }
 
     /**
-     * Inicializa la base de datos con libros de prueba usando JavaFaker.
+     * Crea las ciudades que aparecerán en el listado de tu App.
      */
-    private void inicializarLibros() {
+    private void inicializarCiudades() {
         try {
             if (BORRAR_DATOS_EXISTENTES) {
-                libroRepository.deleteAll();
-                log.info("✓ Libros existentes eliminados");
+                ciudadRepository.deleteAll();
+                log.info("✓ Listado de ciudades reiniciado");
             }
 
-            Faker faker = new Faker(new Locale("es"));
-            
-            for (int i = 0; i < CANTIDAD_LIBROS_DEMO; i++) {
-            	
-                Libro libro = new Libro();
-                libro.setTitulo(faker.book().title());
-                libro.setAutor(faker.book().author());
-                libro.setIsbn(faker.code().isbn10()); // ISBN-10 válido
-                
-                libroRepository.save(libro);
+            if (ciudadRepository.count() == 0) {
+                List<Ciudad> ciudades = List.of(
+                    new Ciudad("Sevilla", 37.3828, -5.9731),
+                    new Ciudad("Madrid", 40.4168, -3.7038),
+                    new Ciudad("Barcelona", 41.3851, 2.1734),
+                    new Ciudad("Valencia", 39.4699, -0.3763),
+                    new Ciudad("Bilbao", 43.2630, -2.9350),
+                    new Ciudad("Granada", 37.1773, -3.5986),
+                    new Ciudad("Vigo", 42.2406, -8.7207)
+                );
+
+                ciudadRepository.saveAll(ciudades);
+                log.info("✓ {} ciudades estratégicas añadidas", ciudades.size());
             }
-            
-            log.info("✓ {} libros de demostración creados", CANTIDAD_LIBROS_DEMO);
-            
         } catch (Exception e) {
-            log.error("✗ Error al inicializar libros: {}", e.getMessage(), e);
+            log.error("✗ Error al inicializar ciudades: {}", e.getMessage());
         }
     }
 
     /**
-     * Inicializa la base de datos con usuarios de prueba.
+     * Crea usuarios para probar la seguridad de la API.
      */
     private void inicializarUsuarios() {
         try {
-            // Verificar si ya existen usuarios
             if (usuarioRepository.count() > 0) {
-                log.info("⚠ La base de datos ya contiene usuarios. Omitiendo creación de usuarios demo.");
+                log.info("⚠ Usuarios ya existentes, omitiendo creación.");
                 return;
             }
 
-            // Usuario 1 - Rol USER
-            Usuario usuario1 = new Usuario();
-            usuario1.setFirstName("Alice");
-            usuario1.setLastName("Johnson");
-            usuario1.setEmail("alice.johnson@example.com");
-            usuario1.setPassword(passwordEncoder.encode("password123"));
-            usuario1.getRoles().add(Role.ROLE_USER);
-            usuarioRepository.save(usuario1);
-            log.info("✓ Usuario USER creado: {} ({})", usuario1.getEmail(), "password123");
+            // Usuario Administrador
+            Usuario admin = new Usuario();
+            admin.setFirstName("Admin");
+            admin.setLastName("App");
+            admin.setEmail("admin@clima.com");
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.getRoles().add(Role.ROLE_ADMIN);
+            usuarioRepository.save(admin);
 
-            // Usuario 2 - Rol ADMIN
-            Usuario usuario2 = new Usuario();
-            usuario2.setFirstName("Bob");
-            usuario2.setLastName("Smith");
-            usuario2.setEmail("bob.smith@example.com");
-            usuario2.setPassword(passwordEncoder.encode("password456"));
-            usuario2.getRoles().add(Role.ROLE_ADMIN);
-            usuarioRepository.save(usuario2);
-            log.info("✓ Usuario ADMIN creado: {} ({})", usuario2.getEmail(), "password456");
+            // Usuario Estándar
+            Usuario user = new Usuario();
+            user.setFirstName("User");
+            user.setLastName("Demo");
+            user.setEmail("user@clima.com");
+            user.setPassword(passwordEncoder.encode("user123"));
+            user.getRoles().add(Role.ROLE_USER);
+            usuarioRepository.save(user);
 
-            // Usuario 3 - Rol USER
-            Usuario usuario3 = new Usuario();
-            usuario3.setFirstName("Carol");
-            usuario3.setLastName("Davis");
-            usuario3.setEmail("carol.davis@example.com");
-            usuario3.setPassword(passwordEncoder.encode("password789"));
-            usuario3.getRoles().add(Role.ROLE_USER);
-            usuarioRepository.save(usuario3);
-            log.info("✓ Usuario USER creado: {} ({})", usuario3.getEmail(), "password789");
-
-            // Usuarios adicionales con JavaFaker
+            // Generar algunos usuarios extra con Faker
             Faker faker = new Faker(new Locale("es"));
-            for (int i = 0; i < 5; i++) {
-                String email = faker.internet().emailAddress();
-                Usuario usuarioAleatorio = new Usuario();
-                usuarioAleatorio.setFirstName(faker.name().firstName());
-                usuarioAleatorio.setLastName(faker.name().lastName());
-                usuarioAleatorio.setEmail(email);
-                usuarioAleatorio.setPassword(passwordEncoder.encode("demo123"));
-                usuarioAleatorio.getRoles().add(Role.ROLE_USER);
-                usuarioRepository.save(usuarioAleatorio);
+            for (int i = 0; i < 3; i++) {
+                Usuario randomUser = new Usuario();
+                randomUser.setFirstName(faker.name().firstName());
+                randomUser.setLastName(faker.name().lastName());
+                randomUser.setEmail(faker.internet().emailAddress());
+                randomUser.setPassword(passwordEncoder.encode("demo123"));
+                randomUser.getRoles().add(Role.ROLE_USER);
+                usuarioRepository.save(randomUser);
             }
-            log.info("✓ 5 usuarios aleatorios creados (password: demo123)");
 
-            // Mostrar credenciales de acceso
-            log.info("");
-            log.info("CREDENCIALES DE ACCESO:");
-            log.info("  USER:  alice.johnson@example.com / password123");
-            log.info("  ADMIN: bob.smith@example.com / password456");
-            log.info("  USER:  carol.davis@example.com / password789");
-            log.info("  Otros usuarios aleatorios: demo123");
+            log.info("✓ Credenciales: admin@clima.com (admin123) | user@clima.com (user123)");
 
         } catch (Exception e) {
-            log.error("✗ Error al inicializar usuarios: {}", e.getMessage(), e);
+            log.error("✗ Error al inicializar usuarios: {}", e.getMessage());
         }
     }
 }

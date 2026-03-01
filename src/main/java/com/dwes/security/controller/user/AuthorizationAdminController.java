@@ -27,7 +27,6 @@ public class AuthorizationAdminController {
 
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<UsuarioResponse>> showUsers() {
     	logger.info("## AuthorizationAdminController :: showUsers" );
         List<UsuarioResponse> userList = userService.getAllUsers();

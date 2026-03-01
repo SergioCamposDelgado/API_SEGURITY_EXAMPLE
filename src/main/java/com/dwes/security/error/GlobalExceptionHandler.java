@@ -11,8 +11,6 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import com.dwes.security.dto.response.error.ErrorDetailsResponse;
-import com.dwes.security.error.exception.LibroNotFoundException;
-
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -29,24 +27,7 @@ public class GlobalExceptionHandler {
 	            request.getDescription(false));
 	        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
 	    }
-    
-    /**
-     * ###################################################
-     * #        Libro 404  Not Found Exception           ##
-     * ###################################################
-     * @param ex
-     * @param request
-     * @return
-     */
-    @ExceptionHandler(LibroNotFoundException.class)
-    public ResponseEntity<ErrorDetailsResponse> handleLibroNotFoundException(LibroNotFoundException ex, WebRequest request) {
-    	ErrorDetailsResponse errorDetails = new ErrorDetailsResponse(
-            new Date(),
-            ex.getMessage(),
-            request.getDescription(false));
 
-        return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
-    }
     /**
      * ####################################################
      * #       "Ruta no encontrada" Exception 404        ##
