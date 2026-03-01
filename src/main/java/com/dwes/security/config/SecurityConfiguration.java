@@ -47,7 +47,7 @@ public class SecurityConfiguration {
 				}).csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(request -> request.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-						.requestMatchers("/api/clima/ciudades", "/api/clima/hoy").permitAll()
+						.requestMatchers("/api/clima/ciudades", "/api/clima/hoy", "/api/v1/auth/**").permitAll()
 
 						.requestMatchers(HttpMethod.POST, "/api/clima/ciudades")
 						.hasAuthority(Role.ROLE_ADMIN.toString())
